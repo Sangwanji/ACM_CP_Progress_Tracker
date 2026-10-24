@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // Supabase pooled connection (used by the app)
+  directUrl = env("DIRECT_URL")    // direct/session connection (used by migrations)
+}
+
+enum Role {
+  ADMIN   // pure manager: no mentees, no tasks, just manages accounts and mentors
+  EXPERT
+  SCHOLAR
+  FELLOW
+}
+
+enum AssignmentStatus {
+  TODO
+  IN_PROGRESS
+  SUBMITTED
+  DONE
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String   @unique
+  passwordHash       String
+  role               Role
+  isAdmin            Boolean  @default(false) // always true for role ADMIN; can also be set on an EXPERT
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  mentorLinks Mentorship[] @relation("MenteeSide") // rows where this user is the mentee
+  menteeLinks Mentorship[] @relation("ExpertSide") // rows where this user is the expert
+  profile     Profile?
+  tasksMade   Task[]           @relation("TaskCreator")
+  assignments TaskAssignment[]
+  
+}
+
+model Profile {
+  userId           Int     @id
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year             Int?
+  branch           String?
+  rollNo           String?
+  phone            String?
+  leetcodeHandle   String?
+  codeforcesHandle String?
+  codechefHandle   String?
+  bio              String?
+  avatarUrl        String?
+}
+
+model Task {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?
+  problemLinks Json     @default("[]")
+  difficulty   String?
+  deadline     DateTime
+  createdAt    DateTime @default(now())
+
+  createdById Int
+  createdBy   User @relation("TaskCreator", fields: [createdById], references: [id])
+
+  assignments TaskAssignment[]
+
+  @@index([createdById])
+}
+
+// One row per person per task: independent status and feedback for each assignee.
+// OVERDUE is computed at read time (deadline < now AND status != DONE), not stored.
+model TaskAssignment {
+  id             Int              @id @default(autoincrement())
+  status         AssignmentStatus @default(TODO)
+  submissionLink String?
+  assigneeNote   String?
+  expertFeedback String?
+  completedAt    DateTime?
+  updatedAt      DateTime         @updatedAt
+
+  taskId     Int
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assigneeId Int
+  assignee   User @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, assigneeId])
+  @@index([assigneeId])
+}
+
+model Mentorship {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  expertId Int
+  expert   User @relation("ExpertSide", fields: [expertId], references: [id], onDelete: Cascade)
+  menteeId Int
+  mentee   User @relation("MenteeSide", fields: [menteeId], references: [id], onDelete: Cascade)
+
+  @@unique([expertId, menteeId])
+  @@index([menteeId])
+}
