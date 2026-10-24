@@ -51,8 +51,18 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', requireAuthPending, async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  res.json({ user: publicUser(user) });
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    include: {
+      mentorLinks: {
+        where: { expert: { isActive: true } },
+        select: { expert: { select: { id: true, name: true, email: true } } },
+      },
+    },
+  });
+  res.json({
+    user: { ...publicUser(user), mentors: user.mentorLinks.map((l) => l.expert) },
+  });
 });
 
 router.post('/change-password', requireAuthPending, async (req, res) => {

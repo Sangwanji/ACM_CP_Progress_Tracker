@@ -37,8 +37,8 @@ model User {
   menteeLinks Mentorship[] @relation("ExpertSide") // rows where this user is the expert
   profile     Profile?
   tasksMade   Task[]           @relation("TaskCreator")
-  assignments TaskAssignment[]
-  
+  assignments        TaskAssignment[] @relation("Assignee")
+  reviewedAssignments TaskAssignment[] @relation("Reviewer")
 }
 
 model Profile {
@@ -86,8 +86,11 @@ model TaskAssignment {
   taskId     Int
   task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   assigneeId Int
-  assignee   User @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
+  assignee   User @relation("Assignee", fields: [assigneeId], references: [id], onDelete: Cascade)
 
+  reviewedAt   DateTime?
+  reviewedById Int?
+  reviewedBy   User?     @relation("Reviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   @@unique([taskId, assigneeId])
   @@index([assigneeId])
 }

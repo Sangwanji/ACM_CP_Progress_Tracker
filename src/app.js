@@ -16,6 +16,8 @@ app.use(cookieParser());
 app.get('/health', (req, res) => res.json({ ok: true }));
 app.use('/auth', require('./routes/auth'));
 app.use('/users', require('./routes/users'));
+app.use('/tasks', require('./routes/tasks'));
+app.use('/assignments', require('./routes/assignments'));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
