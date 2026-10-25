@@ -19,6 +19,7 @@ app.use('/users', require('./routes/users'));
 app.use('/tasks', require('./routes/tasks'));
 app.use('/assignments', require('./routes/assignments'));
 app.use('/dashboard', require('./routes/dashboard'));
+app.use('/profiles', require('./routes/profiles'));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => {
