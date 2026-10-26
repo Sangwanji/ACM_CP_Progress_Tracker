@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
+import { ErrorBox, Loading } from '../components/ui';
 
 export default function ChangePassword() {
   const { user, loading, refresh } = useAuth();
@@ -12,7 +13,7 @@ export default function ChangePassword() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (loading) return <p className="p-6 text-gray-500">Loading…</p>;
+  if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
 
   async function onSubmit(e) {
@@ -23,7 +24,7 @@ export default function ChangePassword() {
     setBusy(true);
     try {
       await api('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } });
-      await refresh(); // reloads the user so mustChangePassword becomes false
+      await refresh();
       navigate('/', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -33,32 +34,36 @@ export default function ChangePassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-6">
         <div>
-          <h1 className="text-xl font-semibold">Change your password</h1>
+          <p className="font-mono text-sm text-muted">
+            <span className="text-ac">$</span> passwd
+          </p>
+          <h1 className="mt-2 text-xl font-semibold">Change your password</h1>
           {user.mustChangePassword && (
-            <p className="text-sm text-gray-500">You are using a temporary password. Choose a new one to continue.</p>
+            <p className="mt-1 text-sm text-muted">
+              You are using a temporary password. Choose a new one to continue.
+            </p>
           )}
         </div>
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
+        {error && <ErrorBox message={error} />}
         <label className="block text-sm">
-          Current password
+          <span className="text-muted">Current password</span>
           <input type="password" required value={currentPassword} onChange={(e) => setCurrent(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2" autoComplete="current-password" />
+            className="input mt-1" autoComplete="current-password" />
         </label>
         <label className="block text-sm">
-          New password
+          <span className="text-muted">New password</span>
           <input type="password" required value={newPassword} onChange={(e) => setNew(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2" autoComplete="new-password" />
+            className="input mt-1" autoComplete="new-password" />
         </label>
         <label className="block text-sm">
-          Confirm new password
+          <span className="text-muted">Confirm new password</span>
           <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2" autoComplete="new-password" />
+            className="input mt-1" autoComplete="new-password" />
         </label>
-        <button disabled={busy}
-          className="w-full bg-blue-600 text-white rounded py-2 font-medium disabled:opacity-60">
+        <button disabled={busy} className="btn-primary w-full">
           {busy ? 'Saving…' : 'Save password'}
         </button>
       </form>

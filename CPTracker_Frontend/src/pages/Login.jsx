@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { ErrorBox } from '../components/ui';
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -27,25 +28,28 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-4">
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-6">
         <div>
-          <h1 className="text-xl font-semibold">ACM CP Tracker</h1>
-          <p className="text-sm text-gray-500">Log in with your club account</p>
+          <p className="font-mono text-sm text-muted">
+            <span className="text-ac">$</span> login
+          </p>
+          <h1 className="mt-2 font-mono text-xl font-bold tracking-tight">
+            acm<span className="text-brand">::</span>cp tracker
+          </h1>
         </div>
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</p>}
+        {error && <ErrorBox message={error} />}
         <label className="block text-sm">
-          Email
+          <span className="text-muted">Email</span>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2" autoComplete="username" />
+            className="input mt-1" autoComplete="username" />
         </label>
         <label className="block text-sm">
-          Password
+          <span className="text-muted">Password</span>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2" autoComplete="current-password" />
+            className="input mt-1" autoComplete="current-password" />
         </label>
-        <button disabled={busy}
-          className="w-full bg-blue-600 text-white rounded py-2 font-medium disabled:opacity-60">
+        <button disabled={busy} className="btn-primary w-full">
           {busy ? 'Logging in…' : 'Log in'}
         </button>
       </form>

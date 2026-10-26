@@ -1,28 +1,42 @@
 import { useAuth } from '../auth/AuthContext';
+import { Card, PageHeader } from '../components/ui';
+import { StatusBadge, DifficultyBadge } from '../components/StatusBadge';
 
 export default function Home() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <span className="font-semibold">ACM CP Tracker</span>
-          <div className="flex items-center gap-4 text-sm">
-            <span>{user.name} <span className="text-gray-500">({user.role.toLowerCase()})</span></span>
-            <button onClick={logout} className="text-blue-600 hover:underline">Log out</button>
-          </div>
+    <>
+      <PageHeader title={`Welcome, ${user.name}`} subtitle="Dashboards are coming next." />
+
+      {user.mentors?.length > 0 && (
+        <Card className="mb-4 p-4">
+          <p className="text-sm text-muted">Your experts</p>
+          <p className="mt-1">{user.mentors.map((m) => m.name).join(', ')}</p>
+        </Card>
+      )}
+
+      <Card className="p-4">
+        <h2 className="font-mono text-sm font-medium">Verdict legend</h2>
+        <p className="mt-1 text-sm text-muted">Task progress is shown like contest verdicts.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            ['TODO', false, 'Not started'],
+            ['IN_PROGRESS', false, 'You are working on it'],
+            ['SUBMITTED', false, 'Submitted, waiting for review'],
+            ['DONE', false, 'Marked done by an expert'],
+            ['IN_PROGRESS', true, 'Deadline passed, not submitted'],
+          ].map(([status, overdue, text]) => (
+            <div key={text} className="flex items-center gap-3">
+              <StatusBadge status={status} overdue={overdue} />
+              <span className="text-sm text-muted">{text}</span>
+            </div>
+          ))}
         </div>
-      </header>
-      <main className="max-w-5xl mx-auto p-4">
-        <h2 className="text-lg font-semibold">Welcome, {user.name}</h2>
-        {user.mentors?.length > 0 && (
-          <p className="text-sm text-gray-600 mt-2">
-            Your experts: {user.mentors.map((m) => m.name).join(', ')}
-          </p>
-        )}
-        <p className="text-gray-500 mt-4">Dashboards come next.</p>
-      </main>
-    </div>
+        <div className="mt-4 flex items-center gap-4 text-sm text-muted">
+          Difficulty: <DifficultyBadge value="Easy" /> <DifficultyBadge value="Medium" /> <DifficultyBadge value="Hard" />
+        </div>
+      </Card>
+    </>
   );
 }

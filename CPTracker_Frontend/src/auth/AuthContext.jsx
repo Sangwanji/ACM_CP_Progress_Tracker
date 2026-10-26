@@ -22,10 +22,11 @@ export function AuthProvider({ children }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const login = async (email, password) => {
-    const { user } = await api('/auth/login', { method: 'POST', body: { email, password } });
-    setUser(user);
-    return user;
-  };
+  await api('/auth/login', { method: 'POST', body: { email, password } });
+  const { user } = await api('/auth/me'); // includes mentors
+  setUser(user);
+  return user;
+};
 
   const logout = async () => {
     await api('/auth/logout', { method: 'POST' });
