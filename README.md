@@ -63,7 +63,7 @@ You need Node.js 18 or newer and a Supabase project.
 - [x] Login, logout, forced password change, role middleware
 - [x] Admin tools: create users, assign several experts to a mentee, deactivate, reset password
 - [x] Tasks, assignments, expert review and reopen, reviewer tracking
-- [ ] Dashboard and profile routes (written, being verified in Postman)
+- [x] Dashboard and profile routes
 - [ ] Admin delete user, and add or remove a single expert
 
 **Frontend**
@@ -75,7 +75,7 @@ You need Node.js 18 or newer and a Supabase project.
 
 **Documentation**
 - [ ] `API.md`: every backend endpoint with its request body and an example response
-- [ ] Update the backend README for the dashboard and profile endpoints
+- [x] Update the backend README for the dashboard and profile endpoints.
 
 **Later**
 - [ ] Deployment (backend host plus frontend host, with `/api` forwarded so cookies stay first-party)

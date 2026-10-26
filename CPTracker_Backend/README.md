@@ -1,14 +1,12 @@
-# ACM CP Progress Tracker
+# ACM CP Progress Tracker: Backend
 
-A web app for tracking progress in our department's competitive programming program. Experts mentor scholars and fellows, assign tasks with deadlines, and review their work. Every member has their own login.
-
-This repository holds the **backend API**. A React frontend will follow.
+The API for the ACM CP Progress Tracker. Experts mentor scholars and fellows, assign tasks with deadlines, and review their work. Every member has their own login.
 
 ## Roles
 
 | Role | Who | What they can do |
 |---|---|---|
-| **Admin** | Club manager (not an expert) | Creates and manages accounts, assigns mentors, deactivates users, resets passwords, views all tasks and progress |
+| **Admin** | Club manager (not an expert) | Creates and manages accounts, assigns mentors, deactivates users, resets passwords, views all tasks, progress and profiles |
 | **Expert** | 3rd year | Creates tasks for their mentees, tracks progress, reviews submissions. May also hold the admin flag (`isAdmin`) |
 | **Scholar** | 2nd year | Mentored by one or more experts. Works on assigned tasks |
 | **Fellow** | 1st year | Mentored by one or more experts. Works on assigned tasks |
@@ -27,10 +25,11 @@ A scholar or fellow can have **several experts**. Mentorship is stored in its ow
 ## Progress
 
 - [x] **Phase 1:** database schema, seed script, login, change password, role middleware
-- [x] **Phase 2 (admin side):** admin role, user creation, mentor assignment (many experts per mentee), deactivate and reset password
+- [x] **Phase 2:** admin role, user creation, mentor assignment (many experts per mentee), deactivate and reset password, profile view and edit
 - [x] **Phase 3:** tasks, assignment to mentees, status updates, expert review and reopen, reviewer tracking
-- [ ] **Phase 2 (remaining):** profile endpoints for scholars and fellows, admin delete user
-- [ ] **Phase 4:** dashboard statistics
+- [x] **Phase 4:** dashboards for members and experts, review queue
+- [ ] **Remaining:** admin delete user, and add or remove a single expert
+- [ ] **Docs:** `API.md` with every endpoint and its request body
 - [ ] **Later:** email on task assignment, deadline reminders, solved-count sync from LeetCode and Codeforces
 
 ## Getting started
@@ -41,7 +40,7 @@ A scholar or fellow can have **several experts**. Mentorship is stored in its ow
 
 ### Setup
 
-1. Clone the repository and install dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
@@ -51,7 +50,7 @@ A scholar or fellow can have **several experts**. Mentorship is stored in its ow
    npx prisma migrate dev
    ```
 4. Run `prisma/enable_rls.sql` once in the Supabase **SQL Editor**. Supabase exposes public tables through an auto-generated API, and this blocks it. The Express server connects as the database owner, so it is unaffected. Re-run it after adding any new table.
-5. Edit the user lists at the top of `prisma/seed.js` with real names and emails, then seed:
+5. Edit the user lists at the top of `prisma/seed.js`, then seed:
    ```bash
    npm run db:seed
    ```
@@ -83,10 +82,11 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 - **"Can't reach database server":** some college and office networks block database ports. Use a mobile hotspot or a local PostgreSQL for development.
 - **`403 MUST_CHANGE_PASSWORD`:** every account starts with a temporary password. Call `POST /auth/change-password` first.
 - **`Cannot find module`:** check that file names match the `require` paths exactly (`routes/tasks.js`, `routes/assignments.js`, `lib/tasks.js`).
+- **Prisma errors after a version change:** keep `prisma` and `@prisma/client` on the same major version (6.x).
 
 ## API reference
 
-All request and response bodies are JSON. Authentication uses an httpOnly cookie named `token`, set on login.
+All request and response bodies are JSON. Authentication uses an httpOnly cookie named `token`, set on login. A full reference with request bodies is planned as `API.md`.
 
 ### Auth
 
@@ -108,6 +108,18 @@ All request and response bodies are JSON. Authentication uses an httpOnly cookie
 | PATCH | `/users/:id/active` | Admin | Deactivate or reactivate an account (`{ "isActive": false }`) |
 | POST | `/users/:id/reset-password` | Admin | Issue a new temporary password |
 
+### Profiles
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/profiles` | Logged in | Active scholars and fellows. Optional `?role=SCHOLAR` or `?role=FELLOW` |
+| GET | `/profiles/:userId` | Logged in | One profile, including their experts |
+| PATCH | `/profiles/:userId` | Owner, Admin | Edit a profile. An empty string clears a field |
+
+Editable fields: `year` (1 to 5), `branch`, `rollNo`, `phone`, `leetcodeHandle`, `codeforcesHandle`, `codechefHandle`, `bio` (up to 500 characters) and `avatarUrl` (must start with `https://`).
+
+**Phone privacy:** a phone number is returned only to the person themselves, their own experts and admins. Everyone else gets the profile without the `phone` field. Pure admin accounts can't be viewed by others, and deactivated users are visible only to admins.
+
 ### Tasks (experts and admins)
 
 | Method | Endpoint | Access | Description |
@@ -127,6 +139,29 @@ All request and response bodies are JSON. Authentication uses an httpOnly cookie
 | GET | `/assignments/mine` | Scholar, Fellow | My tasks, soonest deadline first, with `overdue` and who assigned each |
 | PATCH | `/assignments/:id` | Scholar, Fellow (own) | Set status (`TODO`, `IN_PROGRESS`, `SUBMITTED`), `submissionLink`, `assigneeNote` |
 | PATCH | `/assignments/:id/review` | Expert | Give `feedback`, and a `decision` of `DONE` or `REOPEN`. Allowed for an expert of that person, or the task creator |
+
+### Dashboard
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/dashboard/me` | Scholar, Fellow | My counts by status, completion rate, overdue tasks, next 5 deadlines, submissions awaiting review, recent feedback |
+| GET | `/dashboard/overview` | Expert, Admin | One card per active mentee (counts, overdue, completion rate, next deadline), plus club-wide totals. Experts see their own mentees, admins see everyone. Mentees with overdue tasks come first |
+| GET | `/dashboard/review-queue` | Expert | Submitted work from your mentees, oldest first, with the submission link, note and whether it was late |
+
+Response shapes:
+
+```
+GET /dashboard/me
+{ stats: { total, todo, inProgress, submitted, done, overdue, completionRate, nextDeadline },
+  overdue: [...], upcoming: [...], awaitingReview: [...], recentFeedback: [...] }
+
+GET /dashboard/overview
+{ totals: { total, todo, inProgress, submitted, done, overdue, completionRate },
+  mentees: [{ id, name, email, role, mentors, stats }] }
+
+GET /dashboard/review-queue
+{ count, queue: [{ assignmentId, assignee, task, submissionLink, assigneeNote, submittedAt, late }] }
+```
 
 ### Examples
 
@@ -166,6 +201,12 @@ PATCH /assignments/7/review
 { "decision": "DONE", "feedback": "Nice work" }
 ```
 
+Edit your profile:
+```http
+PATCH /profiles/12
+{ "branch": "CSE", "leetcodeHandle": "saksham_01", "bio": "Loves graphs" }
+```
+
 ## How tasks work
 
 - Each assignee has their own row per task, with independent status, submission and feedback.
@@ -175,6 +216,7 @@ PATCH /assignments/7/review
 - Any expert of a mentee can review their work. Each review records who gave it and when (`reviewedBy`, `reviewedAt`).
 - Experts see only their own mentees' rows on tasks created by other experts. The creator and admins see every assignee.
 - Admins who are not experts cannot create tasks.
+- **Completion rate** on the dashboards is done assignments divided by all assignments, as a whole-number percentage.
 
 ## Project structure
 
@@ -185,18 +227,18 @@ prisma/
   enable_rls.sql      Row-level security for Supabase
   migrations/
 src/
-  app.js              Express app setup
+  app.js              Express app setup and route registration
   server.js           Entry point
-  lib/                prisma.js, token.js, mentorship.js, tasks.js
+  lib/                prisma.js, token.js, mentorship.js, tasks.js, stats.js
   middleware/auth.js  Authentication and role checks
-  routes/             auth.js, users.js, tasks.js, assignments.js
+  routes/             auth.js, users.js, tasks.js, assignments.js, dashboard.js, profiles.js
 ```
 
 ## Data model
 
 - **User:** name, email, password hash, role, admin flag, active flag, forced password change flag
 - **Mentorship:** links an expert to a scholar or fellow (many to many)
-- **Profile:** one per user, for personal details and coding handles
+- **Profile:** one per user, with year, branch, roll number, phone, coding handles, bio and avatar link
 - **Task:** title, description, problem links, difficulty, deadline, creator
 - **TaskAssignment:** one row per person per task, with status, submission link, note, expert feedback, reviewer and review time
 
