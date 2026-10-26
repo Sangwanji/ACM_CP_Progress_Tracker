@@ -1,10 +1,20 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './auth/ProtectedRoute';
+import { useAuth } from './auth/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import Home from './pages/Home';
 import ComingSoon from './pages/ComingSoon';
+import MyTasks from './pages/MyTasks';
+import MemberTaskDetail from './pages/MemberTaskDetail';
+
+// Scholars and fellows see their own tasks. Experts and admins get the task manager later.
+function TasksIndex() {
+  const { user } = useAuth();
+  const isMember = user.role === 'SCHOLAR' || user.role === 'FELLOW';
+  return isMember ? <MyTasks /> : <ComingSoon title="Tasks" />;
+}
 
 export default function App() {
   return (
@@ -15,10 +25,13 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/tasks" element={<ComingSoon title="Tasks" />} />
+          <Route path="/tasks" element={<TasksIndex />} />
           <Route path="/members" element={<ComingSoon title="Members" />} />
           <Route path="/profile" element={<ComingSoon title="My profile" />} />
 
+          <Route element={<ProtectedRoute roles={['SCHOLAR', 'FELLOW']} />}>
+            <Route path="/tasks/:id" element={<MemberTaskDetail />} />
+          </Route>
           <Route element={<ProtectedRoute roles={['EXPERT']} />}>
             <Route path="/review" element={<ComingSoon title="Review queue" />} />
           </Route>

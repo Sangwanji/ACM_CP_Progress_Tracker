@@ -1,10 +1,12 @@
 import { useAuth } from '../auth/AuthContext';
 import { Card, PageHeader } from '../components/ui';
 import { StatusBadge, DifficultyBadge } from '../components/StatusBadge';
+import MemberDashboard from './MemberDashboard';
+
 
 export default function Home() {
   const { user } = useAuth();
-
+  if (user.role === 'SCHOLAR' || user.role === 'FELLOW') return <MemberDashboard />;
   return (
     <>
       <PageHeader title={`Welcome, ${user.name}`} subtitle="Dashboards are coming next." />
