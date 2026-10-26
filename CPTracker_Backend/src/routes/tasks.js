@@ -3,6 +3,7 @@ const { z } = require('zod');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { taskInclude, formatTask, loadVisibleTask } = require('../lib/tasks');
+const { httpUrl } = require('../lib/validators');
 
 // All task routes: experts and admins only
 router.use(requireAuth, requireRole('EXPERT', 'ADMIN'));
@@ -21,7 +22,7 @@ async function areOwnMentees(expertId, ids) {
 const taskFields = {
   title: z.string().min(1).max(200),
   description: z.string().max(5000).optional(),
-  problemLinks: z.array(z.string().url()).max(20).default([]),
+  problemLinks: z.array(httpUrl).max(20).default([]),
   difficulty: z.string().max(30).optional(),
 };
 

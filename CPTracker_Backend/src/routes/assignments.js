@@ -4,7 +4,7 @@ const prisma = require('../lib/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { isMentorOf } = require('../lib/mentorship');
 const { isOverdue } = require('../lib/tasks');
-
+const { httpUrl } = require('../lib/validators');
 const idParam = (req) => Number(req.params.id);
 
 const present = (a) => ({
@@ -48,7 +48,7 @@ router.get('/mine', requireAuth, requireRole('SCHOLAR', 'FELLOW'), async (req, r
 // Scholar/fellow: update my own progress
 const progressSchema = z.object({
   status: z.enum(['TODO', 'IN_PROGRESS', 'SUBMITTED']).optional(),
-  submissionLink: z.string().url().max(500).nullable().optional(),
+  submissionLink: httpUrl.nullable().optional(),
   assigneeNote: z.string().max(1000).nullable().optional(),
 }).refine((d) => Object.keys(d).length > 0, 'Nothing to update');
 
