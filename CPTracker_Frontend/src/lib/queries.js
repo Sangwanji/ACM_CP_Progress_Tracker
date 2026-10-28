@@ -40,3 +40,41 @@ export function useUpdateProfile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profiles'] }),
   });
 }
+
+export const useOverview = () =>
+  useQuery({ queryKey: ['dashboard', 'overview'], queryFn: () => api('/dashboard/overview') });
+
+export const useReviewQueue = (enabled = true) =>
+  useQuery({ queryKey: ['dashboard', 'review-queue'], queryFn: () => api('/dashboard/review-queue'), enabled });
+
+export const useTasks = () =>
+  useQuery({ queryKey: ['tasks'], queryFn: async () => (await api('/tasks')).tasks });
+
+export const useTask = (id) =>
+  useQuery({ queryKey: ['tasks', String(id)], queryFn: async () => (await api(`/tasks/${id}`)).task });
+
+// Expert: own mentees. Admin (or expert-admin): everyone, so filter by mentorIds where it matters.
+export const useUsers = () =>
+  useQuery({ queryKey: ['users'], queryFn: async () => (await api('/users')).users });
+
+export function useReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => api(`/assignments/${id}/review`, { method: 'PATCH', body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api('/tasks', { method: 'POST', body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}

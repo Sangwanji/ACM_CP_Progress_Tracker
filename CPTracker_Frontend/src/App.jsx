@@ -8,16 +8,24 @@ import Home from './pages/Home';
 import ComingSoon from './pages/ComingSoon';
 import MyTasks from './pages/MyTasks';
 import MemberTaskDetail from './pages/MemberTaskDetail';
+import StaffTasks from './pages/StaffTasks';
+import StaffTaskDetail from './pages/StaffTaskDetail';
+import NewTask from './pages/NewTask';
+import ReviewQueue from './pages/ReviewQueue';
 import Members from './pages/Members';
 import MemberProfile from './pages/MemberProfile';
 import MyProfile from './pages/MyProfile';
 
+const isMember = (user) => user.role === 'SCHOLAR' || user.role === 'FELLOW';
 
-// Scholars and fellows see their own tasks. Experts and admins get the task manager later.
+// Same path, different screen by role
 function TasksIndex() {
   const { user } = useAuth();
-  const isMember = user.role === 'SCHOLAR' || user.role === 'FELLOW';
-  return isMember ? <MyTasks /> : <ComingSoon title="Tasks" />;
+  return isMember(user) ? <MyTasks /> : <StaffTasks />;
+}
+function TaskDetailIndex() {
+  const { user } = useAuth();
+  return isMember(user) ? <MemberTaskDetail /> : <StaffTaskDetail />;
 }
 
 export default function App() {
@@ -30,15 +38,14 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/tasks" element={<TasksIndex />} />
+          <Route path="/tasks/:id" element={<TaskDetailIndex />} />
           <Route path="/members" element={<Members />} />
           <Route path="/members/:userId" element={<MemberProfile />} />
           <Route path="/profile" element={<MyProfile />} />
 
-          <Route element={<ProtectedRoute roles={['SCHOLAR', 'FELLOW']} />}>
-            <Route path="/tasks/:id" element={<MemberTaskDetail />} />
-          </Route>
           <Route element={<ProtectedRoute roles={['EXPERT']} />}>
-            <Route path="/review" element={<ComingSoon title="Review queue" />} />
+            <Route path="/tasks/new" element={<NewTask />} />
+            <Route path="/review" element={<ReviewQueue />} />
           </Route>
           <Route element={<ProtectedRoute adminOnly />}>
             <Route path="/admin/users" element={<ComingSoon title="Users" />} />

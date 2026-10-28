@@ -32,3 +32,16 @@ export function EmptyState({ title, hint }) {
     </div>
   );
 }
+
+export function Stat({ tag, label, value, color, children }) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted">{label}</span>
+        <span className={`font-mono text-xs font-bold ${color}`}>{tag}</span>
+      </div>
+      <p className="mt-2 font-mono text-2xl font-bold">{value}</p>
+      {children}
+    </Card>
+  );
+}
