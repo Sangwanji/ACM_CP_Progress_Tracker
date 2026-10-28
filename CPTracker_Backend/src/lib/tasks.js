@@ -1,6 +1,7 @@
 const prisma = require('./prisma');
 
 const taskInclude = {
+  createdBy: { select: { id: true, name: true } },
   assignments: {
     orderBy: { id: 'asc' },
     include: {
