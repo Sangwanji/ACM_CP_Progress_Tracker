@@ -38,3 +38,6 @@ export function hostOf(url) {
     return url;
   }
 }
+
+const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th'];
+export const yearLabel = (year) => (year ? `${ORDINAL[year]} year` : null);

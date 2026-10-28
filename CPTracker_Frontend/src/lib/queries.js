@@ -20,3 +20,23 @@ export function useUpdateAssignment() {
     },
   });
 }
+
+export const useProfiles = () =>
+  useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => (await api('/profiles')).profiles,
+  });
+
+export const useProfile = (id) =>
+  useQuery({
+    queryKey: ['profiles', String(id)],
+    queryFn: async () => (await api(`/profiles/${id}`)).profile,
+  });
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => api(`/profiles/${id}`, { method: 'PATCH', body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profiles'] }),
+  });
+}

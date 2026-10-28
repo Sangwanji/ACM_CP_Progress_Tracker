@@ -8,6 +8,10 @@ import Home from './pages/Home';
 import ComingSoon from './pages/ComingSoon';
 import MyTasks from './pages/MyTasks';
 import MemberTaskDetail from './pages/MemberTaskDetail';
+import Members from './pages/Members';
+import MemberProfile from './pages/MemberProfile';
+import MyProfile from './pages/MyProfile';
+
 
 // Scholars and fellows see their own tasks. Experts and admins get the task manager later.
 function TasksIndex() {
@@ -26,8 +30,9 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/tasks" element={<TasksIndex />} />
-          <Route path="/members" element={<ComingSoon title="Members" />} />
-          <Route path="/profile" element={<ComingSoon title="My profile" />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/members/:userId" element={<MemberProfile />} />
+          <Route path="/profile" element={<MyProfile />} />
 
           <Route element={<ProtectedRoute roles={['SCHOLAR', 'FELLOW']} />}>
             <Route path="/tasks/:id" element={<MemberTaskDetail />} />
