@@ -71,7 +71,9 @@ router.post('/change-password', requireAuthPending, async (req, res) => {
     return res.status(400).json({ error: parsed.error.issues[0].message });
   }
   const { currentPassword, newPassword } = parsed.data;
-
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'New password must be different from the current one' });
+  }
   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
   if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
     return res.status(401).json({ error: 'Current password is incorrect' });
