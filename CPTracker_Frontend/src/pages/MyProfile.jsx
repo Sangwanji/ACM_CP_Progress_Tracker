@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useProfile, useUpdateProfile } from '../lib/queries';
 import { Card, ErrorBox, Loading, PageHeader } from '../components/ui';
 import { Avatar } from '../components/Avatar';
+import { ChangePasswordCard } from '../components/ChangePasswordCard';
 
 function Field({ label, hint, children }) {
   return (
@@ -108,13 +109,17 @@ export default function MyProfile() {
   const { user } = useAuth();
   const { data, isLoading, error } = useProfile(user.id);
 
-  if (isLoading) return <Loading />;
-  if (error) return <ErrorBox message={error.message} />;
-
   return (
     <>
       <PageHeader title="My profile" subtitle={`${user.name} · ${user.email}`} />
-      <ProfileForm profile={data} />
+
+      {isLoading && <Loading />}
+      {error && <ErrorBox message={error.message} />}
+      {data && <ProfileForm profile={data} />}
+
+      <div className="mt-6">
+        <ChangePasswordCard />
+      </div>
     </>
   );
 }
