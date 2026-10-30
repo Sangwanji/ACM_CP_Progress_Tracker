@@ -114,4 +114,44 @@ router.post('/:id/reset-password', requireAuth, requireAdmin, async (req, res) =
   res.json({ temporaryPassword: password });
 });
 
+// Permanently delete an account. For people who left the program, deactivating is usually better.
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+  const id = idParam(req);
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'User not found' });
+  if (id === req.user.id) return res.status(400).json({ error: 'You cannot delete your own account' });
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  if (target.isAdmin) {
+    const otherAdmins = await prisma.user.count({
+      where: { isAdmin: true, isActive: true, id: { not: id } },
+    });
+    if (otherAdmins === 0) return res.status(400).json({ error: 'Cannot delete the last admin' });
+  }
+
+  if (await prisma.task.count({ where: { createdById: id } })) {
+    return res.status(409).json({ error: 'This user created tasks. Deactivate them instead.' });
+  }
+
+  if (target.role === 'EXPERT') {
+    // mentees whose ONLY expert is this person would be left without one
+    const orphaned = await prisma.user.count({
+      where: {
+        AND: [
+          { mentorLinks: { some: { expertId: id } } },
+          { mentorLinks: { none: { expertId: { not: id } } } },
+        ],
+      },
+    });
+    if (orphaned > 0) {
+      return res.status(409).json({ error: "Reassign this expert's mentees first" });
+    }
+  }
+
+  await prisma.user.delete({ where: { id } }); // profile, mentorships and their task progress cascade
+  res.json({ ok: true });
+});
+
+
 module.exports = router;
