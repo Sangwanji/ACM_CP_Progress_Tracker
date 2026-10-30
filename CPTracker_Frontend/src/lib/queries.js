@@ -115,3 +115,43 @@ export function useRemoveAssignee() {
     onSuccess: () => refreshAll(qc),
   });
 }
+
+const refreshPeople = (qc) => {
+  ['users', 'profiles', 'dashboard', 'tasks'].forEach((key) => qc.invalidateQueries({ queryKey: [key] }));
+};
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api('/users', { method: 'POST', body }),
+    onSuccess: () => refreshPeople(qc),
+  });
+}
+
+export function useSetMentors() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, mentorIds }) => api(`/users/${id}/mentors`, { method: 'PUT', body: { mentorIds } }),
+    onSuccess: () => refreshPeople(qc),
+  });
+}
+
+export function useSetActive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }) => api(`/users/${id}/active`, { method: 'PATCH', body: { isActive } }),
+    onSuccess: () => refreshPeople(qc),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({ mutationFn: (id) => api(`/users/${id}/reset-password`, { method: 'POST' }) });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api(`/users/${id}`, { method: 'DELETE' }),
+    onSuccess: () => refreshPeople(qc),
+  });
+}

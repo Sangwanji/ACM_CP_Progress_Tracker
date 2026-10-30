@@ -16,7 +16,9 @@ import Members from './pages/Members';
 import MemberProfile from './pages/MemberProfile';
 import MyProfile from './pages/MyProfile';
 import EditTask from './pages/EditTask';
-
+import AdminUsers from './pages/AdminUsers';
+import AdminNewUser from './pages/AdminNewUser';
+import AdminUserDetail from './pages/AdminUserDetail';
 
 const isMember = (user) => user.role === 'SCHOLAR' || user.role === 'FELLOW';
 
@@ -51,7 +53,9 @@ export default function App() {
             <Route path="/review" element={<ReviewQueue />} />
           </Route>
           <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/admin/users" element={<ComingSoon title="Users" />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/users/new" element={<AdminNewUser />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetail />} />
           </Route>
         </Route>
       </Route>
