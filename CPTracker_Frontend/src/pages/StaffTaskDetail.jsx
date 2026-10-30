@@ -1,17 +1,21 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useTask } from '../lib/queries';
+import { useDeleteTask, useRemoveAssignee, useTask } from '../lib/queries';
 import { Card, EmptyState, ErrorBox, Loading } from '../components/ui';
 import { DifficultyBadge, StatusBadge } from '../components/StatusBadge';
 import { Countdown } from '../components/Countdown';
 import { ExternalLink } from '../components/ExternalLink';
 import { ReviewForm } from '../components/ReviewForm';
+import { AddAssignees } from '../components/AddAssignees';
 import { formatDate, hostOf, isLate, isOpen } from '../lib/format';
 
 export default function StaffTaskDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: t, isLoading, error } = useTask(id);
+  const del = useDeleteTask();
+  const remove = useRemoveAssignee();
 
   if (isLoading) return <Loading />;
   if (error?.status === 404) {
@@ -27,20 +31,44 @@ export default function StaffTaskDetail() {
   if (error) return <ErrorBox message={error.message} />;
 
   const canReview = user.role === 'EXPERT'; // pure admins can view but not review
+  const canManage = user.role === 'EXPERT' && t.createdById === user.id; // edit, delete, assignees
   const total = t.assignments.length;
   const done = t.assignments.filter((a) => a.status === 'DONE').length;
   const open = t.assignments.some((a) => isOpen(a.status));
-  // submissions waiting for review first
   const rows = [...t.assignments].sort((a, b) => (b.status === 'SUBMITTED') - (a.status === 'SUBMITTED'));
+
+  function onDelete() {
+    const msg = `Delete "${t.title}"?\n\nThis removes it for all ${total} assignee${total === 1 ? '' : 's'}, including their submissions and feedback. This cannot be undone.`;
+    if (window.confirm(msg)) del.mutate(t.id, { onSuccess: () => navigate('/tasks', { replace: true }) });
+  }
+
+  function onRemove(a) {
+    const msg = `Remove ${a.assignee.name} from this task?\n\nTheir progress and feedback on it will be deleted.`;
+    if (window.confirm(msg)) remove.mutate({ taskId: t.id, assigneeId: a.assignee.id });
+  }
+
+  const actionError = del.error?.message || remove.error?.message;
 
   return (
     <>
       <Link to="/tasks" className="font-mono text-xs text-muted hover:text-fg">← tasks</Link>
 
-      <div className="mb-6 mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">{t.title}</h1>
-        <DifficultyBadge value={t.difficulty} />
+      <div className="mb-6 mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl font-semibold">{t.title}</h1>
+          <DifficultyBadge value={t.difficulty} />
+        </div>
+        {canManage && (
+          <div className="flex gap-2">
+            <Link to={`/tasks/${t.id}/edit`} className="btn-ghost">Edit</Link>
+            <button className="btn-ghost text-tle" disabled={del.isPending} onClick={onDelete}>
+              {del.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        )}
       </div>
+
+      {actionError && <div className="mb-4"><ErrorBox message={actionError} /></div>}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -62,7 +90,7 @@ export default function StaffTaskDetail() {
 
           <h2 className="font-mono text-sm font-medium">Assignees ({total})</h2>
           {rows.length === 0 && (
-            <Card><EmptyState title="Nobody is assigned" /></Card>
+            <Card><EmptyState title="Nobody is assigned" hint={canManage ? 'Add people below.' : undefined} /></Card>
           )}
           {rows.map((a) => (
             <Card key={a.id} className="p-4">
@@ -73,7 +101,18 @@ export default function StaffTaskDetail() {
                   </Link>
                   <span className="ml-2 font-mono text-xs uppercase text-muted">{a.assignee.role}</span>
                 </div>
-                <StatusBadge status={a.status} overdue={isLate(a.status, t.deadline)} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={a.status} overdue={isLate(a.status, t.deadline)} />
+                  {canManage && (
+                    <button
+                      className="font-mono text-xs text-muted hover:text-tle"
+                      disabled={remove.isPending}
+                      onClick={() => onRemove(a)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
 
               {a.submissionLink && (
@@ -102,6 +141,8 @@ export default function StaffTaskDetail() {
               )}
             </Card>
           ))}
+
+          {canManage && <AddAssignees task={t} />}
         </div>
 
         <Card className="h-fit p-4">

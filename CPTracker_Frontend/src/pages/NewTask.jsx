@@ -3,10 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useCreateTask, useUsers } from '../lib/queries';
 import { Card, EmptyState, ErrorBox, Loading, PageHeader } from '../components/ui';
-
-const pad = (n) => String(n).padStart(2, '0');
-const toLocalInput = (d) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+import { toLocalInput } from '../lib/format';
 
 function defaultDeadline() {
   const d = new Date();

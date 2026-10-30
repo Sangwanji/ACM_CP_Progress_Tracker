@@ -41,3 +41,9 @@ export function hostOf(url) {
 
 const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th'];
 export const yearLabel = (year) => (year ? `${ORDINAL[year]} year` : null);
+
+const pad = (n) => String(n).padStart(2, '0');
+
+// Date -> value for <input type="datetime-local"> in the browser's local time
+export const toLocalInput = (d) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;

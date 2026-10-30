@@ -78,3 +78,40 @@ export function useCreateTask() {
     },
   });
 }
+
+const refreshAll = (qc) => {
+  ['tasks', 'dashboard', 'assignments'].forEach((key) => qc.invalidateQueries({ queryKey: [key] }));
+};
+
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => api(`/tasks/${id}`, { method: 'PATCH', body }),
+    onSuccess: () => refreshAll(qc),
+  });
+}
+
+export function useDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api(`/tasks/${id}`, { method: 'DELETE' }),
+    onSuccess: () => refreshAll(qc),
+  });
+}
+
+export function useAssignTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, assigneeIds }) => api(`/tasks/${id}/assign`, { method: 'POST', body: { assigneeIds } }),
+    onSuccess: () => refreshAll(qc),
+  });
+}
+
+export function useRemoveAssignee() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, assigneeId }) =>
+      api(`/tasks/${taskId}/assignees/${assigneeId}`, { method: 'DELETE' }),
+    onSuccess: () => refreshAll(qc),
+  });
+}

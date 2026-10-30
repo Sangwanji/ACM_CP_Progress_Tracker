@@ -15,6 +15,8 @@ import ReviewQueue from './pages/ReviewQueue';
 import Members from './pages/Members';
 import MemberProfile from './pages/MemberProfile';
 import MyProfile from './pages/MyProfile';
+import EditTask from './pages/EditTask';
+
 
 const isMember = (user) => user.role === 'SCHOLAR' || user.role === 'FELLOW';
 
@@ -45,6 +47,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute roles={['EXPERT']} />}>
             <Route path="/tasks/new" element={<NewTask />} />
+            <Route path="/tasks/:id/edit" element={<EditTask />} />
             <Route path="/review" element={<ReviewQueue />} />
           </Route>
           <Route element={<ProtectedRoute adminOnly />}>
