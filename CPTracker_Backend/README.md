@@ -2,11 +2,13 @@
 
 The API for the ACM CP Progress Tracker. Experts mentor scholars and fellows, assign tasks with deadlines, and review their work. Every member has their own login.
 
+The full list of endpoints with request bodies is in [API.md](../API.md).
+
 ## Roles
 
 | Role | Who | What they can do |
 |---|---|---|
-| **Admin** | Club manager (not an expert) | Creates and manages accounts, assigns mentors, deactivates users, resets passwords, views all tasks, progress and profiles |
+| **Admin** | Club manager (not an expert) | Creates and manages accounts, assigns mentors, deactivates, deletes and resets passwords, views all tasks, progress and profiles |
 | **Expert** | 3rd year | Creates tasks for their mentees, tracks progress, reviews submissions. May also hold the admin flag (`isAdmin`) |
 | **Scholar** | 2nd year | Mentored by one or more experts. Works on assigned tasks |
 | **Fellow** | 1st year | Mentored by one or more experts. Works on assigned tasks |
@@ -20,17 +22,18 @@ A scholar or fellow can have **several experts**. Mentorship is stored in its ow
 - **ORM:** Prisma 6
 - **Auth:** email and password (bcrypt), JWT in an httpOnly cookie
 - **Validation:** Zod
-- **Security:** Helmet, CORS with credentials, login rate limiting, Supabase row-level security enabled on all tables
+- **Security:** Helmet, CORS with credentials, login rate limiting, http(s)-only links, Supabase row-level security enabled on all tables
 
 ## Progress
 
-- [x] **Phase 1:** database schema, seed script, login, change password, role middleware
-- [x] **Phase 2:** admin role, user creation, mentor assignment (many experts per mentee), deactivate and reset password, profile view and edit
-- [x] **Phase 3:** tasks, assignment to mentees, status updates, expert review and reopen, reviewer tracking
-- [x] **Phase 4:** dashboards for members and experts, review queue
-- [ ] **Remaining:** admin delete user, and add or remove a single expert
-- [ ] **Docs:** `API.md` with every endpoint and its request body
-- [ ] **Later:** email on task assignment, deadline reminders, solved-count sync from LeetCode and Codeforces
+- [x] Login, logout, forced password change, change password, role middleware
+- [x] Admin tools: create, mentors, deactivate, reset password, delete (with safety checks)
+- [x] Profiles with phone privacy
+- [x] Tasks, assignments, expert review and reopen, reviewer tracking
+- [x] Dashboards for members and experts, review queue
+- [x] API reference ([API.md](../API.md))
+- [ ] Email on task assignment, deadline reminders
+- [ ] Solved-count sync from LeetCode and Codeforces
 
 ## Getting started
 
@@ -78,134 +81,37 @@ Generate a secret with:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
+### Scripts
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Start the server with auto-restart |
+| `npm start` | Start the server |
+| `npm run db:seed` | Create the seed users |
+| `npm run db:migrate` | Run `prisma migrate dev` |
+| `npm run db:deploy` | Apply migrations in production |
+| `npm run db:studio` | Open Prisma Studio |
+
 ### Troubleshooting
 - **"Can't reach database server":** some college and office networks block database ports. Use a mobile hotspot or a local PostgreSQL for development.
 - **`403 MUST_CHANGE_PASSWORD`:** every account starts with a temporary password. Call `POST /auth/change-password` first.
 - **`Cannot find module`:** check that file names match the `require` paths exactly (`routes/tasks.js`, `routes/assignments.js`, `lib/tasks.js`).
 - **Prisma errors after a version change:** keep `prisma` and `@prisma/client` on the same major version (6.x).
 
-## API reference
+## Endpoints at a glance
 
-All request and response bodies are JSON. Authentication uses an httpOnly cookie named `token`, set on login. A full reference with request bodies is planned as `API.md`.
+All request and response bodies are JSON. Authentication uses an httpOnly cookie named `token`, set on login. Bodies, rules and response shapes are in [API.md](../API.md).
 
-### Auth
+| Area | Endpoints |
+|---|---|
+| Auth | `GET /health`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/change-password` |
+| Users (admin) | `GET /users`, `POST /users`, `PUT /users/:id/mentors`, `PATCH /users/:id/active`, `POST /users/:id/reset-password`, `DELETE /users/:id` |
+| Profiles | `GET /profiles`, `GET /profiles/:userId`, `PATCH /profiles/:userId` |
+| Tasks (experts, admins) | `POST /tasks`, `GET /tasks`, `GET /tasks/:id`, `PATCH /tasks/:id`, `DELETE /tasks/:id`, `POST /tasks/:id/assign`, `DELETE /tasks/:id/assignees/:assigneeId` |
+| Assignments | `GET /assignments/mine`, `PATCH /assignments/:id`, `PATCH /assignments/:id/review` |
+| Dashboard | `GET /dashboard/me`, `GET /dashboard/overview`, `GET /dashboard/review-queue` |
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/health` | Public | Server status |
-| POST | `/auth/login` | Public | Log in (limited to 10 attempts per 15 minutes) |
-| POST | `/auth/logout` | Anyone | Clear the session cookie |
-| GET | `/auth/me` | Logged in | Current user. Scholars and fellows also get `mentors` (id, name, email of each expert) |
-| POST | `/auth/change-password` | Logged in | Change password, required on first login |
-
-### Users (admin management)
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/users` | Admin, Expert | Admin sees everyone. An expert sees their own mentees |
-| POST | `/users` | Admin | Create an account. Returns a one-time temporary password |
-| PUT | `/users/:id/mentors` | Admin | Replace the experts of a scholar or fellow (`{ "mentorIds": [2, 3] }`) |
-| PATCH | `/users/:id/active` | Admin | Deactivate or reactivate an account (`{ "isActive": false }`) |
-| POST | `/users/:id/reset-password` | Admin | Issue a new temporary password |
-
-### Profiles
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/profiles` | Logged in | Active scholars and fellows. Optional `?role=SCHOLAR` or `?role=FELLOW` |
-| GET | `/profiles/:userId` | Logged in | One profile, including their experts |
-| PATCH | `/profiles/:userId` | Owner, Admin | Edit a profile. An empty string clears a field |
-
-Editable fields: `year` (1 to 5), `branch`, `rollNo`, `phone`, `leetcodeHandle`, `codeforcesHandle`, `codechefHandle`, `bio` (up to 500 characters) and `avatarUrl` (must start with `https://`).
-
-**Phone privacy:** a phone number is returned only to the person themselves, their own experts and admins. Everyone else gets the profile without the `phone` field. Pure admin accounts can't be viewed by others, and deactivated users are visible only to admins.
-
-### Tasks (experts and admins)
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/tasks` | Expert | Create a task and assign it to your own active mentees |
-| GET | `/tasks` | Expert, Admin | Admin sees all. An expert sees tasks they created or that involve one of their mentees |
-| GET | `/tasks/:id` | Expert, Admin | One task with each assignee's progress |
-| PATCH | `/tasks/:id` | Creator | Edit title, description, links, difficulty or deadline |
-| DELETE | `/tasks/:id` | Creator | Delete a task and all progress on it |
-| POST | `/tasks/:id/assign` | Creator | Add more assignees (`{ "assigneeIds": [5, 6] }`) |
-| DELETE | `/tasks/:id/assignees/:assigneeId` | Creator | Remove one assignee and their progress |
-
-### Assignments (progress and review)
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/assignments/mine` | Scholar, Fellow | My tasks, soonest deadline first, with `overdue` and who assigned each |
-| PATCH | `/assignments/:id` | Scholar, Fellow (own) | Set status (`TODO`, `IN_PROGRESS`, `SUBMITTED`), `submissionLink`, `assigneeNote` |
-| PATCH | `/assignments/:id/review` | Expert | Give `feedback`, and a `decision` of `DONE` or `REOPEN`. Allowed for an expert of that person, or the task creator |
-
-### Dashboard
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/dashboard/me` | Scholar, Fellow | My counts by status, completion rate, overdue tasks, next 5 deadlines, submissions awaiting review, recent feedback |
-| GET | `/dashboard/overview` | Expert, Admin | One card per active mentee (counts, overdue, completion rate, next deadline), plus club-wide totals. Experts see their own mentees, admins see everyone. Mentees with overdue tasks come first |
-| GET | `/dashboard/review-queue` | Expert | Submitted work from your mentees, oldest first, with the submission link, note and whether it was late |
-
-Response shapes:
-
-```
-GET /dashboard/me
-{ stats: { total, todo, inProgress, submitted, done, overdue, completionRate, nextDeadline },
-  overdue: [...], upcoming: [...], awaitingReview: [...], recentFeedback: [...] }
-
-GET /dashboard/overview
-{ totals: { total, todo, inProgress, submitted, done, overdue, completionRate },
-  mentees: [{ id, name, email, role, mentors, stats }] }
-
-GET /dashboard/review-queue
-{ count, queue: [{ assignmentId, assignee, task, submissionLink, assigneeNote, submittedAt, late }] }
-```
-
-### Examples
-
-Create a fellow with two experts:
-```http
-POST /users
-{
-  "name": "Test Fellow",
-  "email": "fellow@example.com",
-  "role": "FELLOW",
-  "mentorIds": [2, 3]
-}
-```
-
-Create a task:
-```http
-POST /tasks
-{
-  "title": "Two Pointers set 1",
-  "description": "Solve 5 problems",
-  "problemLinks": ["https://leetcode.com/problems/two-sum/"],
-  "difficulty": "Easy",
-  "deadline": "2026-12-15T18:00:00.000Z",
-  "assigneeIds": [12, 13]
-}
-```
-
-Submit work (as a scholar or fellow):
-```http
-PATCH /assignments/7
-{ "status": "SUBMITTED", "submissionLink": "https://leetcode.com/submissions/detail/123/" }
-```
-
-Review (as an expert):
-```http
-PATCH /assignments/7/review
-{ "decision": "DONE", "feedback": "Nice work" }
-```
-
-Edit your profile:
-```http
-PATCH /profiles/12
-{ "branch": "CSE", "leetcodeHandle": "saksham_01", "bio": "Loves graphs" }
-```
+**Phone privacy:** a phone number is returned only to the person themselves, their own experts and admins. Everyone else gets the profile without the `phone` field.
 
 ## How tasks work
 
@@ -213,10 +119,16 @@ PATCH /profiles/12
 - **Statuses:** `TODO`, `IN_PROGRESS`, `SUBMITTED`, `DONE`. Submitting requires a submission link.
 - **Overdue** is computed when you read the data: the status is `TODO` or `IN_PROGRESS` and the deadline has passed. A submission waiting for review is not overdue.
 - Once an assignment is `DONE`, the assignee can't change it. An expert can reopen it, which returns it to `IN_PROGRESS`.
-- Any expert of a mentee can review their work. Each review records who gave it and when (`reviewedBy`, `reviewedAt`).
+- Any expert of a mentee can review their work, and so can the task's creator. Each review records who gave it and when (`reviewedBy`, `reviewedAt`).
+- Only the creator can edit or delete a task, and add or remove assignees. Other experts keep review access.
 - Experts see only their own mentees' rows on tasks created by other experts. The creator and admins see every assignee.
 - Admins who are not experts cannot create tasks.
 - **Completion rate** on the dashboards is done assignments divided by all assignments, as a whole-number percentage.
+
+## Deleting versus deactivating users
+
+- **Deactivate** blocks login and keeps all history. Use it for people who leave the program.
+- **Delete** removes the account and all of its progress. It is refused for the last admin, for yourself, for experts who created tasks, and for experts who are a mentee's only expert.
 
 ## Project structure
 
@@ -229,7 +141,7 @@ prisma/
 src/
   app.js              Express app setup and route registration
   server.js           Entry point
-  lib/                prisma.js, token.js, mentorship.js, tasks.js, stats.js
+  lib/                prisma.js, token.js, mentorship.js, tasks.js, stats.js, validators.js
   middleware/auth.js  Authentication and role checks
   routes/             auth.js, users.js, tasks.js, assignments.js, dashboard.js, profiles.js
 ```
@@ -247,4 +159,5 @@ src/
 - Passwords are hashed with bcrypt. Accounts are created by an admin, so there is no public signup.
 - Login errors are generic, so the API does not reveal whether an email exists.
 - The user is reloaded from the database on every request, so deactivating an account takes effect immediately.
+- Tokens are stateless: changing a password does not sign out other devices until their token expires.
 - Never commit `.env` or `seed-credentials.txt`.

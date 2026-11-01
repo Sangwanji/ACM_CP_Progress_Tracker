@@ -8,6 +8,7 @@ A web app for tracking progress in our department's competitive programming prog
 - **Scholars** (2nd year) and **fellows** (1st year) see their tasks, update progress, submit links, and read feedback. A scholar or fellow can have more than one expert.
 - **Admins** manage accounts and mentor assignments. An admin is not an expert and cannot create tasks, unless the account is also an expert.
 - Everyone has a profile with their branch, roll number and LeetCode, Codeforces and CodeChef handles. Scholars and fellows can see each other's profiles, but phone numbers are visible only to the person, their experts and admins.
+- Everyone can change their own password from their profile.
 
 ## Repository layout
 
@@ -15,12 +16,14 @@ A web app for tracking progress in our department's competitive programming prog
 ACM_CP_Progress_Tracker/
   CPTracker_Backend/     Express and Prisma API (PostgreSQL on Supabase)
   CPTracker_Frontend/    React app (Vite and Tailwind)
+  API.md                 Every endpoint with request bodies and response shapes
 ```
 
 Each folder has its own README with setup details:
 
 - [Backend README](CPTracker_Backend/README.md)
 - [Frontend README](CPTracker_Frontend/README.md)
+- [API reference](API.md)
 
 ## Tech stack
 
@@ -60,27 +63,28 @@ You need Node.js 18 or newer and a Supabase project.
 ## Roadmap
 
 **Backend**
-- [x] Login, logout, forced password change, role middleware
-- [x] Admin tools: create users, assign several experts to a mentee, deactivate, reset password
+- [x] Login, logout, forced password change, change password, role middleware
+- [x] Admin tools: create users, assign several experts to a mentee, deactivate, reset password, delete
+- [x] Profiles, dashboards and review queue
 - [x] Tasks, assignments, expert review and reopen, reviewer tracking
-- [x] Dashboard and profile routes
-- [ ] Admin delete user, and add or remove a single expert
 
 **Frontend**
-- [x] Foundation: login, forced password change, route protection
-- [ ] App shell and the "Verdict" theme
-- [ ] Scholar and fellow screens: dashboard, my tasks, profiles
-- [ ] Expert screens: mentee overview, review queue, task create and detail
-- [ ] Admin screens: users, mentors, activate, reset password
+- [x] Login, forced password change, route protection
+- [x] App shell and the "Verdict" theme
+- [x] Scholar and fellow screens: dashboard, my tasks, task detail with submission and feedback
+- [x] Expert screens: mentee overview, review queue, task create, edit and delete, assignees, review
+- [x] Members directory, profiles, profile editing and password change
+- [x] Admin screens: users, creation, experts, deactivate, reset password, delete
 
 **Documentation**
-- [ ] `API.md`: every backend endpoint with its request body and an example response
-- [x] Update the backend README for the dashboard and profile endpoints.
+- [x] Backend, frontend and project READMEs
+- [x] `API.md` with every endpoint and request body
 
-**Later**
+**Next**
 - [ ] Deployment (backend host plus frontend host, with `/api` forwarded so cookies stay first-party)
 - [ ] Email when a task is assigned, and reminders before a deadline
 - [ ] Sync solved counts from LeetCode and Codeforces
+- [ ] Optional: forgot-password by email, sign out of other devices after a password change
 
 ## Design direction
 
