@@ -9,7 +9,7 @@ const prisma = require('./lib/prisma');
 
 const app = express();
 
-if (process.env.NODE_ENV === 'production') app.set('trust proxy', 2);
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 4);
 
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));

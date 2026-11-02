@@ -8,10 +8,22 @@ const { requireAuthPending } = require('../middleware/auth');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Try again in 15 minutes.' },
+});
+
+const accountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !req.body?.email,
+  keyGenerator: (req) => String(req.body.email).toLowerCase().trim(),
+  message: { error: 'Too many login attempts for this account. Try again in 15 minutes.' },
 });
 
 const loginSchema = z.object({
@@ -29,8 +41,8 @@ const publicUser = (u) => ({
   isAdmin: u.isAdmin, mustChangePassword: u.mustChangePassword,
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
-     console.log('login ip:', req.ip, 'xff:', req.headers['x-forwarded-for']);
+router.post('/login', loginLimiter, accountLimiter, async (req, res) => {     
+  console.log('login ip:', req.ip, 'xff:', req.headers['x-forwarded-for']);
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid email or password' });
 
