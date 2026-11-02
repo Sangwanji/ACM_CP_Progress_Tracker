@@ -66,12 +66,17 @@ Response `200`
 { "ok": true }
 ```
 
+### GET /health/db
+Access: Public. Runs a trivial database query. Used by the uptime monitor, and it keeps the database from pausing.
+
+Response `200`: `{ "ok": true }`. Returns `503` with `{ "ok": false }` if the database cannot be reached.
+
 ---
 
 ## Auth
 
 ### POST /auth/login
-Access: Public. Limited to 10 attempts per 15 minutes per client.
+Access: Public. Only failed attempts are counted: 10 per account and 30 per IP address in 15 minutes.
 
 Body
 ```json

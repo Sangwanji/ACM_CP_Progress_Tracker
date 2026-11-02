@@ -2,6 +2,8 @@
 
 A web app for tracking progress in our department's competitive programming program. Experts mentor scholars and fellows, assign tasks with deadlines, and review their work. Every member has their own login.
 
+**Live site:** https://acm-cp-progress-tracker.vercel.app
+
 ## What it does
 
 - **Experts** (3rd year) create tasks, assign them to their mentees, and review submissions.
@@ -80,11 +82,41 @@ You need Node.js 18 or newer and a Supabase project.
 - [x] Backend, frontend and project READMEs
 - [x] `API.md` with every endpoint and request body
 
+**Deployment**
+- [x] Backend on Render, frontend on Vercel, production database on Supabase
+- [ ] Uptime monitor on `/health/db`
+- [ ] First database backup, then monthly
+- [ ] CI checks on GitHub, with Render set to deploy only after they pass
+
 **Next**
-- [ ] Deployment (backend host plus frontend host, with `/api` forwarded so cookies stay first-party)
 - [ ] Email when a task is assigned, and reminders before a deadline
 - [ ] Sync solved counts from LeetCode and Codeforces
 - [ ] Optional: forgot-password by email, sign out of other devices after a password change
+
+## Deployment
+
+The app runs on free tiers:
+
+| Part | Host | Notes |
+|---|---|---|
+| Frontend | Vercel | Root directory `CPTracker_Frontend`. `vercel.json` forwards `/api/*` to the backend |
+| Backend | Render (free web service) | Root directory `CPTracker_Backend` |
+| Database | Supabase (free) | Separate project for production |
+
+```
+Browser  ->  Vercel (site + /api rewrite)  ->  Render (Express API)  ->  Supabase (PostgreSQL)
+```
+
+The browser only talks to the Vercel address, so the login cookie is first-party and works in every browser. The backend address is never used directly.
+
+**Free-tier behaviour to expect**
+- Render puts the service to sleep after about 15 minutes without traffic, and the first request afterwards can take around a minute. A free uptime monitor calling `/health/db` every 10 minutes avoids most of this.
+- Supabase pauses a free project after about a week without activity. The same monitor keeps it awake.
+- The Supabase free plan has no automatic backups, so export the production data regularly (see the backend README).
+
+**Deploying a change:** push to `main`. Render and Vercel both deploy automatically. Render runs `prisma migrate deploy` as part of its build, so new migrations reach production on deploy.
+
+Setup details for each host are in the backend and frontend READMEs.
 
 ## Design direction
 

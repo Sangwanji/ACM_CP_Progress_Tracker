@@ -116,6 +116,32 @@ Difficulty uses green, amber and red for Easy, Medium and Hard.
 
 Fonts: JetBrains Mono for labels, badges and numbers; Inter for body text. Colors are theme tokens in `src/index.css`, and verdict labels live in `StatusBadge.jsx`, so a redesign touches few files.
 
+## Deployment (Vercel)
+
+Live site: https://acm-cp-progress-tracker.vercel.app
+
+| Setting | Value |
+|---|---|
+| Root Directory | `CPTracker_Frontend` |
+| Framework | Vite (detected automatically) |
+| Build Command | `npm run build` |
+| Output | `dist` |
+
+`vercel.json` has two rewrites, and the order matters:
+```json
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://acm-cp-progress-tracker.onrender.com/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+The first forwards API calls to the backend and drops the `/api` prefix. The second makes page reloads on routes like `/tasks/5` work.
+
+No environment variables are needed, because the frontend only uses relative `/api` paths. If the backend address ever changes, update the destination in `vercel.json` and redeploy.
+
+**Testing a deploy.** Open `<site>/api/health`. It should return `{"ok":true}`. A web page means the rewrite isn't applied. A gateway error usually means Render is waking up.
+
 ## Conventions
 
 - Fetch server data with React Query and the `api()` helper. Keep component state for form input only.

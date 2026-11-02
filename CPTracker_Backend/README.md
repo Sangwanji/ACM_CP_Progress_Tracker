@@ -32,6 +32,7 @@ A scholar or fellow can have **several experts**. Mentorship is stored in its ow
 - [x] Tasks, assignments, expert review and reopen, reviewer tracking
 - [x] Dashboards for members and experts, review queue
 - [x] API reference ([API.md](../API.md))
+- [x] Deployed on Render
 - [ ] Email on task assignment, deadline reminders
 - [ ] Solved-count sync from LeetCode and Codeforces
 
@@ -98,13 +99,65 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 - **`Cannot find module`:** check that file names match the `require` paths exactly (`routes/tasks.js`, `routes/assignments.js`, `lib/tasks.js`).
 - **Prisma errors after a version change:** keep `prisma` and `@prisma/client` on the same major version (6.x).
 
+## Deployment (Render)
+
+Live API: https://acm-cp-progress-tracker.onrender.com (browsers reach it through the Vercel rewrite, not directly).
+
+**Service settings**
+
+| Setting | Value |
+|---|---|
+| Root Directory | `CPTracker_Backend` |
+| Build Command | `npm ci --include=dev && npx prisma generate && npx prisma migrate deploy` |
+| Start Command | `npm start` |
+| Instance type | Free |
+| Health Check Path | `/health` |
+
+`--include=dev` is needed because Render sets `NODE_ENV=production` and Prisma's command-line tool is a dev dependency. If the build fails on the Node version, add `NODE_VERSION=22`.
+
+**Environment variables (names only, set in Render)**
+
+| Name | Notes |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Production pooled string (port 6543, `?pgbouncer=true&connection_limit=1`) |
+| `DIRECT_URL` | Production session string (port 5432) |
+| `JWT_SECRET` | A separate random value, different from local |
+| `JWT_EXPIRES_IN` | `7d` |
+| `CLIENT_URL` | Exact origin of the site, no trailing slash. Must match the address users open |
+
+**Health endpoints**
+- `GET /health`: no database access. Render uses it.
+- `GET /health/db`: runs a trivial query and returns `503` if the database is unreachable. Point an uptime monitor at it every 10 minutes to keep Render awake and Supabase from pausing.
+
+**Behind proxies.** Requests pass through Vercel, Cloudflare and Render, so `app.set('trust proxy', 4)` is set in production. With it, `req.ip` is the real visitor address (checked from the Render logs). If the proxy chain changes, re-check this number or the login rate limit will count the wrong address.
+
+**Login rate limits** (failed attempts only, per 15 minutes): 10 per account and 30 per IP address. The IP limit is generous because everyone on campus Wi-Fi shares one address. Counters live in memory, so they reset when the service restarts.
+
+**Cookie.** `httpOnly`, `Secure` in production and `SameSite=Lax`, which works because the browser only talks to one domain.
+
+**First-time production setup**
+1. Create a separate Supabase project and copy both connection strings.
+2. Deploy once so the build applies the migrations.
+3. Run `prisma/enable_rls.sql` in the Supabase SQL Editor.
+4. Seed the real accounts from your laptop (Render's free plan has no shell). In PowerShell, set the two connection strings for that terminal only, then run `node prisma/seed.js`. Then clear them with `Remove-Item Env:DATABASE_URL, Env:DIRECT_URL`.
+5. Share the temporary passwords privately and delete `seed-credentials.txt`.
+
+**Backups.** The Supabase free plan has no automatic backups. Before any schema change, and monthly, run:
+```bash
+pg_dump "<production DIRECT_URL>" -Fc -f backup.dump
+```
+Store the file privately, never in the repo.
+
+**Migrations.** Create them locally with `npx prisma migrate dev`, commit them, and never edit one that has already been applied. Production only runs `migrate deploy`, and migrations do not roll back automatically.
+
 ## Endpoints at a glance
 
 All request and response bodies are JSON. Authentication uses an httpOnly cookie named `token`, set on login. Bodies, rules and response shapes are in [API.md](../API.md).
 
 | Area | Endpoints |
 |---|---|
-| Auth | `GET /health`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/change-password` |
+| Auth | `GET /health`, `GET /health/db`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/change-password` |
 | Users (admin) | `GET /users`, `POST /users`, `PUT /users/:id/mentors`, `PATCH /users/:id/active`, `POST /users/:id/reset-password`, `DELETE /users/:id` |
 | Profiles | `GET /profiles`, `GET /profiles/:userId`, `PATCH /profiles/:userId` |
 | Tasks (experts, admins) | `POST /tasks`, `GET /tasks`, `GET /tasks/:id`, `PATCH /tasks/:id`, `DELETE /tasks/:id`, `POST /tasks/:id/assign`, `DELETE /tasks/:id/assignees/:assigneeId` |
@@ -160,4 +213,6 @@ src/
 - Login errors are generic, so the API does not reveal whether an email exists.
 - The user is reloaded from the database on every request, so deactivating an account takes effect immediately.
 - Tokens are stateless: changing a password does not sign out other devices until their token expires.
+- Login attempts are rate limited per account and per IP, counting failures only.
+- Links in tasks and submissions must be `http(s)`, so a `javascript:` link can never be saved.
 - Never commit `.env` or `seed-credentials.txt`.
