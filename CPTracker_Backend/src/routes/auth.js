@@ -42,7 +42,6 @@ const publicUser = (u) => ({
 });
 
 router.post('/login', loginLimiter, accountLimiter, async (req, res) => {     
-  console.log('login ip:', req.ip, 'xff:', req.headers['x-forwarded-for']);
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid email or password' });
 
